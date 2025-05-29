@@ -59,4 +59,66 @@ void UserManagerWidget::updateTableWithUsers(const std::vector<User>& users) {
         const User& user = users[i];
 
         table->setItem(i, 0, new QTableWidgetItem(QString::number(user.id)));
-        table->setItem(i, 1, new QTableWid
+        table->setItem(i, 1, new QTableWidgetItem(QString::fromStdString(user.name)));
+        table->setItem(i, 2, new QTableWidgetItem(QString::fromStdString(user.role)));
+
+        auto* editBtn = new QPushButton("Редактировать");
+        auto* delBtn = new QPushButton("Удалить");
+
+        connect(editBtn, &QPushButton::clicked, this, [=]() {
+            onEditUser(user.id, QString::fromStdString(user.name), QString::fromStdString(user.role));
+        });
+        connect(delBtn, &QPushButton::clicked, this, [=]() {
+            onDeleteUser(user.id);
+        });
+
+        table->setCellWidget(i, 3, editBtn);
+        table->setCellWidget(i, 4, delBtn);
+    }
+}
+
+void UserManagerWidget::onAddUser() {
+    try {
+        auto name = nameInput->text().toStdString();
+        auto role = roleInput->text().toStdString();
+        service->addUser(name, role);
+        nameInput->clear();
+        roleInput->clear();
+        refreshTableAsync();
+    } catch (const std::exception& e) {
+        QMessageBox::critical(this, "Ошибка", e.what());
+    }
+}
+
+void UserManagerWidget::onDeleteUser(int userId) {
+    auto confirm = QMessageBox::question(this, "Подтверждение", "Удалить пользователя?");
+    if (confirm == QMessageBox::Yes) {
+        service->deleteUser(userId);
+        refreshTableAsync();
+    }
+}
+
+void UserManagerWidget::onEditUser(int userId, const QString& currentName, const QString& currentRole) {
+    EditUserDialog dialog(currentName, currentRole, this);
+    if (dialog.exec() == QDialog::Accepted) {
+        try {
+            service->updateUser(userId, dialog.getName().toStdString(), dialog.getRole().toStdString());
+            refreshTableAsync();
+        } catch (const std::exception& e) {
+            QMessageBox::critical(this, "Ошибка", e.what());
+        }
+    }
+}
+
+void UserManagerWidget::onSearchTextChanged(const QString& text) {
+    auto users = service->getUsers();
+    std::vector<User> filtered;
+    for (const auto& user : users) {
+        QString name = QString::fromStdString(user.name);
+        QString role = QString::fromStdString(user.role);
+        if (name.contains(text, Qt::CaseInsensitive) || role.contains(text, Qt::CaseInsensitive)) {
+            filtered.push_back(user);
+        }
+    }
+    updateTableWithUsers(filtered);
+}
