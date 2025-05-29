@@ -1,0 +1,7 @@
+PROJECT\_NAME           = "ERP C++ Project"
+OUTPUT\_DIRECTORY       = docs
+INPUT                  = src
+RECURSIVE              = YES
+GENERATE\_LATEX         = NO
+QUIET                  = YES
+EXTRACT\_ALL            = YES
